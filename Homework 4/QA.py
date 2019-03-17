@@ -69,7 +69,7 @@ nlp = en_core_web_sm.load()
 question = input("What is your question?\n")
 
 
-# In[54]:
+# In[4]:
 
 
 #question = 'Who is the CEO of Google?'
@@ -78,7 +78,7 @@ question = input("What is your question?\n")
 #question = 'What affects GDP?'
 # Keyword heuristic: all cardinal numbers, nouns, adjectives, adverbs
 keywords = [tuples[0] for tuples in pos_tag(word_tokenize(question))
-            if tuples[1][0:2] in ['NN','RB','JJ','CD']] # removed VB
+            if tuples[1][0:2] in ['NN','RB','JJ','CD','VB']] # removed VB
 # drop wh-words and stopwords
 wh = ['which','what','who','where','when','why']
 for kw in keywords:
@@ -89,7 +89,7 @@ for kw in keywords:
         keywords.remove(kw)
 
 
-# In[55]:
+# In[5]:
 
 
 # Classify question:
@@ -109,7 +109,7 @@ if 'percent' in question.lower() or '%' in question.lower():
 # ## Extract Keywords (Query Generation):
 # Entities, Names
 
-# In[56]:
+# In[6]:
 
 
 # Use TextBlob
@@ -131,7 +131,7 @@ def take(n, iterable):
     return list(islice(iterable, n))
 
 
-# In[57]:
+# In[30]:
 
 
 # Stem keywords
@@ -139,8 +139,8 @@ stem_kw = []
 for i in keywords:
     stem_kw += (textblob_tokenizer(i))
 # compani gives useless info, too common. Remove it, since we already have qtype
-#if 'compani' in stem_kw:
-#    stem_kw.remove('compani')
+if 'compani' in stem_kw:
+    stem_kw.remove('compani')
 
 
 # # Document Retrieval:
@@ -170,7 +170,7 @@ texts = pickle.load( open( "texts.pickle", "rb" ))
 tfidf_docs = pickle.load( open( "tfidf_docs.pickle", "rb" ))
 
 
-# In[58]:
+# In[31]:
 
 
 # For words inside of question and their synonyms:
@@ -179,7 +179,7 @@ top_docs = list(tfidf_docs[stem_kw].sum(axis=1).nlargest(K).index.values)
 # Sum up tf-idf scores for docs and return indices of top K documents
 
 
-# In[59]:
+# In[32]:
 
 
 # Create list of top K documents for answer analysis:
@@ -194,7 +194,7 @@ for filename in returned_doc_names:
 
 # # Answer Analysis
 
-# In[60]:
+# In[33]:
 
 
 # Get all sentences from returned documents
@@ -203,7 +203,7 @@ for key,value in returned_docs.items():
     sentences += sent_tokenize(value)
 
 
-# In[61]:
+# In[34]:
 
 
 # Compute tf-idf scores for each sentence: treat sentences as documents
@@ -225,7 +225,7 @@ matrix = tfidf_vec.fit_transform(sentences)
 tfidf_results = pd.DataFrame(matrix.toarray(), columns=tfidf_vec.get_feature_names())
 
 
-# In[62]:
+# In[35]:
 
 
 # Compute scores for each sentence
@@ -237,10 +237,9 @@ score['Sentence Keywords'] = 0
 words_list = score['Sentence Keywords'].tolist()
 
 
-# In[63]:
+# In[36]:
 
 
-# remove months here, too prominent
 for i in range(len(sentences)-1):
     # for each sentence
     words = [tuples[0] for tuples in pos_tag(word_tokenize(sentences[i]))
@@ -258,7 +257,7 @@ for i in range(len(sentences)-1):
 score['Sentence Keywords'] = words_list
 
 
-# In[81]:
+# In[37]:
 
 
 # Calculate scores:
@@ -286,41 +285,29 @@ for i in range(0,len(score['Sentence Keywords'])-1):
     for kw in stem_kw:
         if kw in sent_kw[i]:
             score_list[i] += score[kw].loc[i] #add tfidf score if in sentence
-        if kw not in sent_kw[i]:
-            score_list[i] -= tfidf_docs[kw].sum() #subtract tfidf score if word not contained
+        #if kw not in sent_kw[i]:
+         #   score_list[i] -= tfidf_docs[kw].sum() #subtract tfidf score if word not contained
             
 score['Sentence Keywords'] = sent_kw
 score['Score'] = score_list
 
 
-# In[82]:
+# In[38]:
 
 
 # Calculate final answer scores:
 # Sum up tf-idf scores for docs and return indices of top K documents
-K = 10
+K = 20
 top_sents = list(score['Score'].nlargest(K).index.values)
 
 # Return top sentences as answer
 answer_sents = [sentences[i] for i in top_sents]
 
 
-# In[83]:
-
-
-top_sents
-
-
-# In[89]:
-
-
-score.loc[772]
-
-
 # ## Tag Retrieved Documents with Type:
 # Person, Location, Quantity, etc.
 
-# In[85]:
+# In[39]:
 
 
 # Use nlp to tag entities in the answer sentences
@@ -346,15 +333,15 @@ for lists in clean_sent_list:
     i += 1
 
 
-# In[86]:
+# In[40]:
 
 
 # Get list of ceos and companies and pickle them
-ceos = pickle.load(open( "ceos_list.pickle","rb" ))
-comps = pickle.load(open("comps_list.pickle","rb"))
+ceos = pd.read_csv("ceo_final.csv")['Token'].tolist()
+comps = pd.read_csv("comp_final.csv")['Token'].tolist()
 
 
-# In[87]:
+# In[41]:
 
 
 # Match answer type to question type and print answers
